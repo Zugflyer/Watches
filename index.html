@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Établi — Collection de montres</title>
+<style>
+  :root {
+    --bg: #14171c;
+    --panel: #1c2027;
+    --panel-2: #232830;
+    --line: #2e343e;
+    --ink: #e8e5dd;
+    --ink-dim: #9aa0ab;
+    --ink-faint: #626873;
+    --brass: #c8a45c;
+    --brass-bright: #e0bd72;
+    --brass-deep: #97783c;
+    --green: #7ba05b;
+    --red: #c0705f;
+    --radius: 4px;
+    --font-display: 'Georgia', 'Times New Roman', serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    overscroll-behavior-y: none;
+  }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  input, select, textarea { font-family: inherit; font-size: 16px; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  header.topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: rgba(20,23,28,0.86);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+    padding: env(safe-area-inset-top) 0 0 0;
+  }
+  .topbar-inner {
+    max-width: 1180px; margin: 0 auto;
+    padding: 14px 20px; display: flex; align-items: center; gap: 16px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand .mark {
+    font-family: var(--font-display); font-size: 22px; letter-spacing: 0.5px;
+    color: var(--ink);
+  }
+  .brand .mark b { color: var(--brass); font-weight: normal; }
+  .brand .sub {
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 600;
+  }
+  nav.tabs { display: flex; gap: 2px; margin-left: auto; }
+  nav.tabs button {
+    padding: 8px 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.3px;
+    color: var(--ink-dim); border-radius: var(--radius); position: relative;
+    transition: color .15s, background .15s;
+  }
+  nav.tabs button:hover { color: var(--ink); background: var(--panel-2); }
+  nav.tabs button.active { color: var(--bg); background: var(--brass); }
+  nav.tabs .spacer { flex: 1; }
+
+  main { flex: 1; max-width: 1180px; width: 100%; margin: 0 auto; padding: 28px 20px 100px; }
+
+  .view-title {
+    font-family: var(--font-display); font-size: 26px; font-weight: normal;
+    margin-bottom: 4px; display: flex; align-items: center; gap: 12px;
+  }
+  .view-sub { color: var(--ink-dim); font-size: 14px; margin-bottom: 24px; }
+  .count-pill {
+    font-family: var(--font-body); font-size: 12px; font-weight: 700;
+    background: var(--panel-2); color: var(--brass); padding: 2px 10px;
+    border-radius: 20px; border: 1px solid var(--line); letter-spacing: .5px;
+  }
+
+  .btn {
+    padding: 10px 18px; border-radius: var(--radius); font-weight: 600; font-size: 14px;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--ink);
+    transition: all .15s; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:hover { border-color: var(--brass-deep); background: var(--panel); }
+  .btn-primary { background: var(--brass); color: #1a1a1a; border-color: var(--brass); }
+  .btn-primary:hover { background: var(--brass-bright); border-color: var(--brass-bright); }
+  .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-dim); }
+  .btn-ghost:hover { color: var(--ink); background: var(--panel-2); }
+  .btn-danger:hover { border-color: var(--red); color: var(--red); background: var(--panel); }
+  .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+  .toolbar { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; align-items: center; }
+  .search-box { position: relative; flex: 1; min-width: 200px; }
+  .search-box input {
+    width: 100%; padding: 10px 14px 10px 38px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink);
+  }
+  .search-box input:focus { outline: none; border-color: var(--brass-deep); }
+  .search-box svg { position: absolute; left: 12px; top: 11px; color: var(--ink-faint); }
+  select.filter {
+    padding: 10px 14px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); color: var(--ink); cursor: pointer;
+  }
+  select.filter:focus { outline: none; border-color: var(--brass-deep); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    overflow: hidden; transition: transform .18s, border-color .18s, box-shadow .18s;
+    cursor: pointer; display: flex; flex-direction: column;
+  }
+  .card:hover { transform: translateY(-3px); border-color: var(--brass-deep); box-shadow: 0 12px 30px rgba(0,0,0,.35); }
+  .card-photo {
+    aspect-ratio: 1; background: var(--panel-2) center/cover no-repeat;
+    position: relative; display: flex; align-items: center; justify-content: center;
+    border-bottom: 1px solid var(--line);
+  }
+  .card-photo .placeholder { color: var(--ink-faint); font-size: 40px; }
+  .card-logo {
+    position: absolute; top: 10px; left: 10px; width: 34px; height: 34px;
+    border-radius: 50%; background: rgba(20,23,28,.75) center/70% no-repeat;
+    border: 1px solid var(--line); backdrop-filter: blur(4px);
+  }
+  .card-badge {
+    position: absolute; bottom: 10px; right: 10px; font-size: 11px; font-weight: 700;
+    background: rgba(20,23,28,.82); color: var(--brass); padding: 3px 9px;
+    border-radius: 20px; border: 1px solid var(--line); backdrop-filter: blur(4px);
+  }
+  .card-body { padding: 13px 15px 15px; }
+  .card-brand { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--brass); font-weight: 700; }
+  .card-model { font-family: var(--font-display); font-size: 17px; margin: 3px 0 8px; line-height: 1.2; }
+  .card-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    font-size: 11px; padding: 2px 8px; border-radius: 3px; background: var(--panel-2);
+    color: var(--ink-dim); border: 1px solid var(--line);
+  }
+  .tag.water { color: var(--green); }
+  .tag.loc { color: #6b8cae; }
+  .tag.heat { color: var(--red); }
+
+  .empty {
+    text-align: center; padding: 70px 20px; color: var(--ink-faint);
+    border: 1px dashed var(--line); border-radius: 8px;
+  }
+  .empty .big { font-size: 44px; margin-bottom: 14px; opacity: .5; }
+  .empty h3 { font-family: var(--font-display); font-weight: normal; color: var(--ink-dim); margin-bottom: 6px; font-size: 20px; }
+
+  .log-hero {
+    background: linear-gradient(160deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--line); border-radius: 8px; padding: 24px; margin-bottom: 26px;
+  }
+  .log-date-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+  .log-date-row .label { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: var(--ink-faint); font-weight: 700; }
+  .log-date-row input[type=date] {
+    padding: 8px 12px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius); color: var(--ink); color-scheme: dark;
+  }
+  .today-tag { font-size: 12px; color: var(--green); font-weight: 700; }
+
+  .worn-today {
+    display: flex; align-items: center; gap: 14px; padding: 16px;
+    background: var(--bg); border: 1px solid var(--brass-deep); border-radius: 6px; margin-bottom: 18px;
+  }
+  .worn-today .wt-photo { width: 56px; height: 56px; border-radius: 6px; background: var(--panel-2) center/cover; flex-shrink: 0; }
+  .worn-today .wt-info { flex: 1; }
+  .worn-today .wt-info .b { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--brass); font-weight: 700; }
+  .worn-today .wt-info .m { font-family: var(--font-display); font-size: 18px; }
+  .worn-stack { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+  .worn-stack .worn-today { margin-bottom: 0; }
+
+  .pick-label { font-size: 13px; color: var(--ink-dim); margin-bottom: 12px; font-weight: 600; }
+  .pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+  .pick-item {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+    cursor: pointer; transition: all .15s; text-align: left; position: relative;
+  }
+  .pick-item:hover { border-color: var(--brass); transform: translateY(-2px); }
+  .pick-item.selected { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass); }
+  .pick-item .pi-photo { aspect-ratio: 1.3; background: var(--panel-2) center/cover; }
+  .pick-item .pi-body { padding: 8px 10px; }
+  .pick-item .pi-brand { font-size: 10px; letter-spacing: .8px; text-transform: uppercase; color: var(--brass); font-weight: 700; }
+  .pick-item .pi-model { font-size: 13px; line-height: 1.2; margin-top: 2px; }
+  .pick-check {
+    position: absolute; top: 6px; right: 6px; z-index: 2; width: 22px; height: 22px;
+    background: var(--brass); color: #1a1a1a; border-radius: 50%; font-size: 13px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .recent-log { margin-top: 30px; }
+  .recent-log h3 { font-family: var(--font-display); font-weight: normal; font-size: 18px; margin-bottom: 14px; }
+  .log-row {
+    display: flex; align-items: center; gap: 14px; padding: 11px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .log-row:hover { background: var(--panel); }
+  .log-row .lr-date { font-size: 13px; color: var(--ink-dim); width: 118px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .log-row .lr-photo { width: 38px; height: 38px; border-radius: 5px; background: var(--panel-2) center/cover; flex-shrink: 0; }
+  .log-row .lr-name { flex: 1; }
+  .log-row .lr-name .b { font-size: 10px; letter-spacing: .8px; text-transform: uppercase; color: var(--brass); font-weight: 700; }
+  .log-row .lr-name .m { font-size: 14px; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .stat-card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 18px; }
+  .stat-card .sc-val { font-family: var(--font-display); font-size: 32px; color: var(--brass); line-height: 1; }
+  .stat-card .sc-label { font-size: 12px; color: var(--ink-dim); margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+
+  .panel-block { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 22px; margin-bottom: 22px; }
+  .panel-block h3 {
+    font-family: var(--font-display); font-weight: normal; font-size: 19px; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .panel-block .ph-sub { font-size: 13px; color: var(--ink-dim); margin-bottom: 20px; }
+
+  .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 11px; }
+  .bar-row .br-label { width: 160px; flex-shrink: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-row .br-label .brand { color: var(--brass); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; display: block; font-weight: 700; }
+  .bar-track { flex: 1; height: 26px; background: var(--panel-2); border-radius: 4px; overflow: hidden; position: relative; }
+  .bar-fill {
+    height: 100%; background: linear-gradient(90deg, var(--brass-deep), var(--brass));
+    border-radius: 4px; transition: width .6s cubic-bezier(.2,.8,.2,1);
+    display: flex; align-items: center; justify-content: flex-end; padding-right: 8px;
+  }
+  .bar-fill .v { font-size: 12px; font-weight: 700; color: #1a1a1a; }
+  .bar-fill.zero { background: var(--panel-2); }
+  .bar-fill.zero .v { color: var(--ink-faint); padding-right: 0; padding-left: 8px; }
+
+  .dormant-list .dm-row {
+    display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line);
+  }
+  .dormant-list .dm-row:last-child { border-bottom: none; }
+  .dm-photo { width: 44px; height: 44px; border-radius: 6px; background: var(--panel-2) center/cover; flex-shrink: 0; }
+  .dm-info { flex: 1; }
+  .dm-info .b { font-size: 10px; letter-spacing: .8px; text-transform: uppercase; color: var(--brass); font-weight: 700; }
+  .dm-info .m { font-size: 15px; }
+  .dm-days { text-align: right; }
+  .dm-days .n { font-family: var(--font-display); font-size: 22px; }
+  .dm-days .l { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 1px; }
+  .dm-days.warn .n { color: var(--red); }
+  .dm-days.never .n { color: var(--ink-faint); font-size: 15px; }
+
+  .donut-wrap { display: flex; gap: 30px; align-items: center; flex-wrap: wrap; }
+  .donut-legend { flex: 1; min-width: 180px; }
+  .legend-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 13px; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .legend-row .lg-val { margin-left: auto; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
+  .overlay {
+    position: fixed; inset: 0; background: rgba(8,10,13,.7); backdrop-filter: blur(3px);
+    z-index: 100; display: flex; justify-content: flex-end; opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+  }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    width: 520px; max-width: 100%; height: 100%; background: var(--panel);
+    border-left: 1px solid var(--line); overflow-y: auto;
+    transform: translateX(30px); transition: transform .25s; padding-bottom: 40px;
+  }
+  .overlay.open .drawer { transform: translateX(0); }
+  .drawer-head {
+    position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--line);
+    padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; z-index: 2;
+  }
+  .drawer-head h2 { font-family: var(--font-display); font-weight: normal; font-size: 20px; }
+  .drawer-body { padding: 24px; }
+
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-dim); font-weight: 700; margin-bottom: 7px; }
+  .field input[type=text], .field input[type=date], .field input[type=number], .field select, .field textarea {
+    width: 100%; padding: 11px 13px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius); color: var(--ink); color-scheme: dark;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--brass-deep); }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    background: var(--bg); border: 1px solid var(--line); color: var(--ink-dim); cursor: pointer;
+    transition: all .15s; user-select: none;
+  }
+  .chip:hover { border-color: var(--brass-deep); color: var(--ink); }
+  .chip.on { background: var(--brass); color: #1a1a1a; border-color: var(--brass); }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+  .toggle-row .tr-label { font-size: 14px; font-weight: 600; }
+  .switch { width: 46px; height: 26px; border-radius: 20px; background: var(--panel-2); border: 1px solid var(--line);
+    position: relative; cursor: pointer; transition: background .15s; flex-shrink: 0; }
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
+    border-radius: 50%; background: var(--ink-dim); transition: all .15s; }
+  .switch.on { background: var(--brass); border-color: var(--brass); }
+  .switch.on::after { left: 22px; background: #1a1a1a; }
+
+  .photo-drop {
+    border: 1px dashed var(--line); border-radius: 6px; aspect-ratio: 1.4;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--ink-faint); cursor: pointer; background: var(--bg) center/cover; position: relative;
+    overflow: hidden; transition: border-color .15s;
+  }
+  .photo-drop:hover { border-color: var(--brass-deep); }
+  .photo-drop .hint { font-size: 13px; text-align: center; }
+  .photo-drop .hint .ic { font-size: 30px; display: block; margin-bottom: 6px; opacity: .6; }
+  .photo-drop.has-img { border-style: solid; }
+  .photo-drop.has-img .hint { display: none; }
+  .photo-drop .change-badge {
+    position: absolute; bottom: 8px; right: 8px; font-size: 11px; background: rgba(20,23,28,.85);
+    padding: 4px 10px; border-radius: 20px; border: 1px solid var(--line); font-weight: 600;
+  }
+  .photo-drop.has-img .change-badge { display: block; }
+  .photo-drop:not(.has-img) .change-badge { display: none; }
+
+  .logo-drop {
+    width: 60px; height: 60px; border-radius: 50%; border: 1px dashed var(--line);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    background: var(--bg) center/72% no-repeat; color: var(--ink-faint); font-size: 22px; flex-shrink: 0;
+  }
+  .logo-drop:hover { border-color: var(--brass-deep); }
+  .logo-drop.has-img { border-style: solid; }
+
+  .detail-photo { width: 100%; aspect-ratio: 1.3; background: var(--bg) center/cover; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 20px; }
+  .detail-brand-row { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .detail-logo { width: 40px; height: 40px; border-radius: 50%; background: var(--bg) center/72% no-repeat; border: 1px solid var(--line); flex-shrink: 0; }
+  .detail-brand { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--brass); font-weight: 700; }
+  .detail-model { font-family: var(--font-display); font-size: 24px; margin-bottom: 20px; }
+  .detail-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+  .detail-attrs { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 20px; }
+  .attr-cell { background: var(--panel); padding: 12px 14px; }
+  .attr-cell .a-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-faint); font-weight: 700; }
+  .attr-cell .a-val { font-size: 15px; margin-top: 3px; }
+  .detail-stats { display: flex; gap: 20px; padding: 16px; background: var(--bg); border-radius: 6px; margin-bottom: 20px; }
+  .detail-stats .ds { text-align: center; flex: 1; }
+  .detail-stats .ds .n { font-family: var(--font-display); font-size: 26px; color: var(--brass); }
+  .detail-stats .ds .l { font-size: 11px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--brass); color: #1a1a1a; padding: 12px 22px; border-radius: 6px;
+    font-weight: 700; font-size: 14px; z-index: 200; opacity: 0; transition: all .3s;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 640px) {
+    .topbar-inner { padding: 12px 16px; }
+    .brand .sub { display: none; }
+    nav.tabs { gap: 0; }
+    nav.tabs button { padding: 8px 12px; font-size: 12px; }
+    main { padding: 20px 14px 90px; }
+    .field-row { grid-template-columns: 1fr; }
+    .detail-attrs { grid-template-columns: 1fr; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .bar-row .br-label { width: 110px; }
+    .drawer { width: 100%; }
+    .donut-wrap { justify-content: center; }
+  }
+
+  /* ---------- Écran de connexion ---------- */
+  #authScreen {
+    position: fixed; inset: 0; z-index: 300; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .auth-card {
+    width: 100%; max-width: 380px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 10px; padding: 32px 28px;
+  }
+  .auth-brand { font-family: var(--font-display); font-size: 28px; text-align: center; margin-bottom: 4px; }
+  .auth-brand b { color: var(--brass); font-weight: normal; }
+  .auth-sub { text-align: center; color: var(--ink-dim); font-size: 13px; margin-bottom: 26px; }
+  .auth-field { margin-bottom: 14px; }
+  .auth-field label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-dim); font-weight: 700; margin-bottom: 6px; }
+  .auth-field input {
+    width: 100%; padding: 12px 13px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius); color: var(--ink); color-scheme: dark;
+  }
+  .auth-field input:focus { outline: none; border-color: var(--brass-deep); }
+  .auth-btn {
+    width: 100%; padding: 13px; border-radius: var(--radius); font-weight: 700; font-size: 15px;
+    background: var(--brass); color: #1a1a1a; margin-top: 8px; transition: background .15s;
+  }
+  .auth-btn:hover { background: var(--brass-bright); }
+  .auth-btn:disabled { opacity: .5; cursor: default; }
+  .auth-toggle { text-align: center; margin-top: 18px; font-size: 13px; color: var(--ink-dim); }
+  .auth-toggle a { color: var(--brass); cursor: pointer; font-weight: 600; }
+  .auth-msg { text-align: center; font-size: 13px; margin-top: 14px; min-height: 18px; }
+  .auth-msg.err { color: var(--red); }
+  .auth-msg.ok { color: var(--green); }
+  .auth-loading { text-align: center; color: var(--ink-dim); font-size: 14px; }
+  .topbar .user-menu { margin-left: 14px; display: flex; align-items: center; gap: 10px; }
+  .topbar .user-email { font-size: 12px; color: var(--ink-faint); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; transition: background .2s; }
+  .sync-dot.busy { background: var(--brass); }
+  .sync-dot.err { background: var(--red); }
+  @media (max-width: 640px) { .topbar .user-email { display: none; } }
+</style>
+</head>
+<body>
+<!-- Écran de connexion -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-brand">Éta<b>bli</b></div>
+    <div class="auth-sub">Ta collection de montres, synchronisée</div>
+    <div id="authForm">
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="authEmail" autocomplete="email" placeholder="toi@exemple.com">
+      </div>
+      <div class="auth-field">
+        <label>Mot de passe</label>
+        <input type="password" id="authPassword" autocomplete="current-password" placeholder="••••••••">
+      </div>
+      <button class="auth-btn" id="authSubmit">Se connecter</button>
+      <div class="auth-toggle" id="authToggle">Pas encore de compte ? <a>Créer un compte</a></div>
+      <div class="auth-msg" id="authMsg"></div>
+    </div>
+  </div>
+</div>
+
+<div class="app hidden" id="appShell">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="mark">Éta<b>bli</b></span>
+        <span class="sub">Montres&nbsp;·&nbsp;Journal</span>
+      </div>
+      <nav class="tabs" id="tabs">
+        <button data-view="log" class="active">Aujourd'hui</button>
+        <button data-view="stats">Analyse</button>
+        <span class="spacer"></span>
+        <button data-view="portfolio">Collection</button>
+      </nav>
+      <div class="user-menu">
+        <span class="sync-dot" id="syncDot" title="Synchronisé"></span>
+        <span class="user-email" id="userEmail"></span>
+        <button class="btn-ghost btn-sm" id="logoutBtn">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main"></main>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="drawer" id="drawer"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============================================================
+   Établi — Collection de montres & Journal de port
+   Stockage : Supabase (synchronisé entre appareils)
+   ============================================================ */
+
+const SUPABASE_URL = 'https://lckxwhdhuoktolzauzxs.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxja3h3aGRodW9rdG9semF1enhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjM2MzgsImV4cCI6MjEwMDAzOTYzOH0.8Ct7l6JqgV21G8fqtu56Yl74gpRmvsTrtk3TeEQBwsI';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const STYLES = ['Dress','Chic','Leisure','Bang-it-up','Swatch'];
+const LOCATIONS = ['Paris','Suisse'];
+const MOVEMENTS = ['Automatique','Remontage manuel','Quartz','Solaire','Montre connectée'];
+
+let watches = [];   // objets applicatifs ; chaque montre porte un rowId (id de ligne Supabase)
+let logs = [];      // {id (rowId), date, watchId}
+let currentView = 'log';
+let logDate = todayStr();
+let editingId = null;
+let currentUser = null;
+
+/* ---------- Indicateur de synchro ---------- */
+function syncState(state) { // 'ok' | 'busy' | 'err'
+  const dot = document.getElementById('syncDot');
+  if (!dot) return;
+  dot.classList.remove('busy','err');
+  if (state === 'busy') dot.classList.add('busy');
+  else if (state === 'err') dot.classList.add('err');
+  dot.title = state === 'busy' ? 'Synchronisation…' : state === 'err' ? 'Erreur de synchro' : 'Synchronisé';
+}
+
+/* ---------- Chargement depuis Supabase ---------- */
+async function loadData() {
+  syncState('busy');
+  const [wRes, lRes] = await Promise.all([
+    sb.from('watches').select('id, data').order('updated_at', { ascending: true }),
+    sb.from('wear_logs').select('id, watch_id, date')
+  ]);
+  if (wRes.error || lRes.error) {
+    syncState('err');
+    const msg = (wRes.error || lRes.error).message || '';
+    if (/relation .* does not exist|schema cache|Could not find the table/i.test(msg)) {
+      toast('Tables manquantes — exécute le script SQL dans Supabase');
+    } else {
+      toast('Erreur de chargement : ' + msg);
+    }
+    watches = []; logs = [];
+    return;
+  }
+  watches = (wRes.data || []).map(row => {
+    const d = row.data || {};
+    return {
+      rowId: row.id,
+      id: d.id || row.id,
+      brand: d.brand||'', model: d.model||'', ref: d.ref||'',
+      styles: Array.isArray(d.styles) ? d.styles : (d.style ? [d.style] : []),
+      location: d.location || '',
+      heatResistant: !!d.heatResistant,
+      movement: d.movement || '',
+      waterResist: d.waterResist || '',
+      purchaseDate: d.purchaseDate || '',
+      lastService: d.lastService || '',
+      notes: d.notes || '',
+      photo: d.photo || '', logo: d.logo || ''
+    };
+  });
+  logs = (lRes.data || []).map(row => ({ id: row.id, watchId: row.watch_id, date: row.date }));
+  syncState('ok');
+}
+
+/* Sérialise une montre pour la colonne jsonb (sans rowId) */
+function watchToData(w) {
+  return {
+    id: w.id, brand: w.brand, model: w.model, ref: w.ref,
+    styles: w.styles, location: w.location, heatResistant: w.heatResistant,
+    movement: w.movement, waterResist: w.waterResist,
+    purchaseDate: w.purchaseDate, lastService: w.lastService,
+    notes: w.notes, photo: w.photo, logo: w.logo
+  };
+}
+
+/* Insère ou met à jour UNE montre */
+async function upsertWatch(w) {
+  syncState('busy');
+  if (w.rowId) {
+    const { error } = await sb.from('watches')
+      .update({ data: watchToData(w), updated_at: new Date().toISOString() })
+      .eq('id', w.rowId);
+    if (error) { syncState('err'); toast('Échec de l\'enregistrement'); return false; }
+  } else {
+    const { data, error } = await sb.from('watches')
+      .insert({ data: watchToData(w) }).select('id').single();
+    if (error) { syncState('err'); toast('Échec de l\'enregistrement'); return false; }
+    w.rowId = data.id;
+  }
+  syncState('ok'); return true;
+}
+
+/* Supprime une montre + ses logs */
+async function deleteWatchRemote(w) {
+  syncState('busy');
+  await sb.from('wear_logs').delete().eq('watch_id', w.id);
+  const { error } = await sb.from('watches').delete().eq('id', w.rowId);
+  if (error) { syncState('err'); toast('Échec de la suppression'); return false; }
+  syncState('ok'); return true;
+}
+
+/* Ajoute un enregistrement de port ; renvoie le rowId */
+async function addLogRemote(watchId, date) {
+  syncState('busy');
+  const { data, error } = await sb.from('wear_logs')
+    .insert({ watch_id: watchId, date }).select('id').single();
+  if (error) { syncState('err'); toast('Échec de l\'enregistrement'); return null; }
+  syncState('ok'); return data.id;
+}
+
+/* Supprime un enregistrement de port par rowId */
+async function deleteLogRemote(rowId) {
+  syncState('busy');
+  const { error } = await sb.from('wear_logs').delete().eq('id', rowId);
+  if (error) { syncState('err'); toast('Échec'); return false; }
+  syncState('ok'); return true;
+}
+
+/* ---------- Utilitaires ---------- */
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr() {
+  const d = new Date(); const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off*60000).toISOString().slice(0,10);
+}
+const MONTHS_FR = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+function fmtDate(s) {
+  if (!s) return '—';
+  const [y,m,d] = s.split('-');
+  return `${parseInt(d)} ${MONTHS_FR[parseInt(m)-1]} ${y}`;
+}
+function daysBetween(a, b) { return Math.round((new Date(b) - new Date(a)) / 86400000); }
+function esc(s) { return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function watchById(id) { return watches.find(w => w.id === id); }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._to); t._to = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function photoBg(url) { return url ? `background-image:url('${url}')` : ''; }
+
+async function fileToDataURL(file, maxDim) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        const scale = Math.min(1, maxDim / Math.max(width, height));
+        width = Math.round(width*scale); height = Math.round(height*scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ============================================================
+   ROUTAGE
+   ============================================================ */
+document.getElementById('tabs').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  currentView = btn.dataset.view;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b === btn));
+  render();
+});
+
+function render() {
+  if (currentView === 'portfolio') renderPortfolio();
+  else if (currentView === 'log') renderLog();
+  else renderStats();
+}
+
+/* ============================================================
+   COLLECTION
+   ============================================================ */
+let pfSearch = '', pfStyle = '', pfSort = 'brand';
+
+function renderPortfolio() {
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="view-title">Collection <span class="count-pill">${watches.length} montres</span></div>
+    <div class="view-sub">Ton portfolio — chaque montre avec photo, historique et attributs.</div>
+    <div class="toolbar">
+      <div class="search-box">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="pfSearch" placeholder="Marque, modèle, référence…" value="${esc(pfSearch)}">
+      </div>
+      <select class="filter" id="pfStyle">
+        <option value="">Tous les styles</option>
+        ${STYLES.map(s => `<option value="${s}" ${pfStyle===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+      <select class="filter" id="pfSort">
+        <option value="brand" ${pfSort==='brand'?'selected':''}>Trier : marque</option>
+        <option value="recent" ${pfSort==='recent'?'selected':''}>Achat le plus récent</option>
+        <option value="worn" ${pfSort==='worn'?'selected':''}>Le plus porté</option>
+      </select>
+      <button class="btn btn-primary" id="addWatch">+ Ajouter une montre</button>
+    </div>
+    <div id="pfGrid"></div>
+  `;
+  document.getElementById('pfSearch').addEventListener('input', e => { pfSearch = e.target.value; drawGrid(); });
+  document.getElementById('pfStyle').addEventListener('change', e => { pfStyle = e.target.value; drawGrid(); });
+  document.getElementById('pfSort').addEventListener('change', e => { pfSort = e.target.value; drawGrid(); });
+  document.getElementById('addWatch').addEventListener('click', () => openEditor(null));
+  drawGrid();
+}
+
+function wearCount(id) { return logs.filter(l => l.watchId === id).length; }
+
+function drawGrid() {
+  const grid = document.getElementById('pfGrid');
+  let list = watches.filter(w => {
+    const q = pfSearch.toLowerCase();
+    const hit = !q || `${w.brand} ${w.model} ${w.ref||''} ${(w.styles||[]).join(' ')}`.toLowerCase().includes(q);
+    const styleOk = !pfStyle || (w.styles||[]).includes(pfStyle);
+    return hit && styleOk;
+  });
+  if (pfSort === 'brand') list.sort((a,b) => (a.brand+a.model).localeCompare(b.brand+b.model));
+  else if (pfSort === 'recent') list.sort((a,b) => (b.purchaseDate||'').localeCompare(a.purchaseDate||''));
+  else if (pfSort === 'worn') list.sort((a,b) => wearCount(b.id) - wearCount(a.id));
+
+  if (watches.length === 0) {
+    grid.innerHTML = `<div class="empty"><div class="big">⌚</div><h3>Aucune montre</h3><p>Ajoute ta première montre pour construire ton portfolio.</p></div>`;
+    return;
+  }
+  if (list.length === 0) {
+    grid.innerHTML = `<div class="empty"><div class="big">🔍</div><h3>Aucun résultat</h3><p>Ajuste la recherche ou le filtre.</p></div>`;
+    return;
+  }
+  grid.className = 'grid';
+  grid.innerHTML = list.map(w => {
+    const wc = wearCount(w.id);
+    const styleTags = (w.styles||[]).slice(0,3).map(s => `<span class="tag">${esc(s)}</span>`).join('');
+    return `
+    <div class="card" data-id="${w.id}">
+      <div class="card-photo" style="${photoBg(w.photo)}">
+        ${!w.photo ? '<span class="placeholder">⌚</span>' : ''}
+        ${w.logo ? `<div class="card-logo" style="${photoBg(w.logo)}"></div>` : ''}
+        ${wc > 0 ? `<div class="card-badge">${wc}× porté</div>` : ''}
+      </div>
+      <div class="card-body">
+        <div class="card-brand">${esc(w.brand)||'—'}</div>
+        <div class="card-model">${esc(w.model)||'Sans nom'}</div>
+        <div class="card-meta">
+          ${styleTags}
+          ${w.location ? `<span class="tag loc">${esc(w.location)}</span>` : ''}
+          ${w.heatResistant ? `<span class="tag heat">Heat-resistant</span>` : ''}
+          ${w.waterResist ? `<span class="tag water">${esc(w.waterResist)}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('.card').forEach(c => c.addEventListener('click', () => openDetail(c.dataset.id)));
+}
+
+/* ============================================================
+   ÉDITEUR
+   ============================================================ */
+function openEditor(id) {
+  editingId = id;
+  const w = id ? watchById(id) : { brand:'', model:'', ref:'', styles:[], location:'', heatResistant:false, movement:'', waterResist:'', purchaseDate:'', lastService:'', notes:'', photo:'', logo:'' };
+  const drawer = document.getElementById('drawer');
+  drawer.innerHTML = `
+    <div class="drawer-head">
+      <h2>${id ? 'Modifier la montre' : 'Nouvelle montre'}</h2>
+      <button class="btn-ghost btn-sm" id="closeDrawer">✕ Fermer</button>
+    </div>
+    <div class="drawer-body">
+      <div class="field">
+        <label>Photo de la montre</label>
+        <div class="photo-drop ${w.photo?'has-img':''}" id="photoDrop" style="${photoBg(w.photo)}">
+          <div class="hint"><span class="ic">📷</span>Toucher pour importer</div>
+          <span class="change-badge">Changer</span>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" class="hidden">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Marque</label>
+          <div style="display:flex;gap:10px;align-items:center">
+            <div class="logo-drop ${w.logo?'has-img':''}" id="logoDrop" style="${photoBg(w.logo)}">${w.logo?'':'+'}</div>
+            <input type="text" id="f_brand" placeholder="p. ex. Rolex" value="${esc(w.brand)}" style="flex:1">
+          </div>
+          <input type="file" id="logoInput" accept="image/*" class="hidden">
+        </div>
+        <div class="field">
+          <label>Modèle</label>
+          <input type="text" id="f_model" placeholder="p. ex. Submariner" value="${esc(w.model)}">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Référence</label>
+        <input type="text" id="f_ref" placeholder="p. ex. 124060" value="${esc(w.ref)}">
+      </div>
+
+      <div class="field">
+        <label>Style (plusieurs possibles)</label>
+        <div class="chip-group" id="styleChips">
+          ${STYLES.map(s => `<div class="chip ${(w.styles||[]).includes(s)?'on':''}" data-style="${s}">${s}</div>`).join('')}
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Location</label>
+        <div class="chip-group" id="locChips">
+          ${LOCATIONS.map(l => `<div class="chip ${w.location===l?'on':''}" data-loc="${l}">${l}</div>`).join('')}
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="toggle-row">
+          <span class="tr-label">Heat-resistant</span>
+          <div class="switch ${w.heatResistant?'on':''}" id="heatSwitch"></div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Mouvement</label>
+          <select id="f_movement">
+            <option value="">— choisir —</option>
+            ${MOVEMENTS.map(m => `<option ${w.movement===m?'selected':''}>${m}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Étanchéité</label>
+          <input type="text" id="f_water" placeholder="p. ex. 300 m" value="${esc(w.waterResist)}">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Date d'achat</label>
+          <input type="date" id="f_purchase" value="${esc(w.purchaseDate)}">
+        </div>
+        <div class="field">
+          <label>Dernière révision</label>
+          <input type="date" id="f_service" value="${esc(w.lastService)}">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="f_notes" placeholder="Lieu d'achat, boîte & papiers, particularités…">${esc(w.notes)}</textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:24px">
+        <button class="btn btn-primary" id="saveWatch" style="flex:1">${id?'Enregistrer les modifications':'Créer la montre'}</button>
+        ${id ? '<button class="btn btn-danger" id="deleteWatch">Supprimer</button>' : ''}
+      </div>
+    </div>
+  `;
+  openOverlay();
+
+  let photoData = w.photo, logoData = w.logo;
+  let selStyles = [...(w.styles||[])];
+  let selLoc = w.location || '';
+  let heat = !!w.heatResistant;
+
+  document.getElementById('closeDrawer').addEventListener('click', closeOverlay);
+
+  const photoDrop = document.getElementById('photoDrop');
+  const photoInput = document.getElementById('photoInput');
+  photoDrop.addEventListener('click', () => photoInput.click());
+  photoInput.addEventListener('change', async e => {
+    if (!e.target.files[0]) return;
+    photoData = await fileToDataURL(e.target.files[0], 900);
+    photoDrop.style.backgroundImage = `url('${photoData}')`;
+    photoDrop.classList.add('has-img');
+  });
+  const logoDrop = document.getElementById('logoDrop');
+  const logoInput = document.getElementById('logoInput');
+  logoDrop.addEventListener('click', () => logoInput.click());
+  logoInput.addEventListener('change', async e => {
+    if (!e.target.files[0]) return;
+    logoData = await fileToDataURL(e.target.files[0], 200);
+    logoDrop.style.backgroundImage = `url('${logoData}')`;
+    logoDrop.classList.add('has-img'); logoDrop.textContent = '';
+  });
+
+  // styles multi-select
+  document.querySelectorAll('#styleChips .chip').forEach(chip => chip.addEventListener('click', () => {
+    const s = chip.dataset.style;
+    if (selStyles.includes(s)) { selStyles = selStyles.filter(x => x!==s); chip.classList.remove('on'); }
+    else { selStyles.push(s); chip.classList.add('on'); }
+  }));
+  // location single-select (toggle)
+  document.querySelectorAll('#locChips .chip').forEach(chip => chip.addEventListener('click', () => {
+    const l = chip.dataset.loc;
+    if (selLoc === l) { selLoc = ''; chip.classList.remove('on'); }
+    else {
+      selLoc = l;
+      document.querySelectorAll('#locChips .chip').forEach(c => c.classList.toggle('on', c.dataset.loc === l));
+    }
+  }));
+  // heat switch
+  const heatSwitch = document.getElementById('heatSwitch');
+  heatSwitch.addEventListener('click', () => { heat = !heat; heatSwitch.classList.toggle('on', heat); });
+
+  document.getElementById('saveWatch').addEventListener('click', async () => {
+    const brand = document.getElementById('f_brand').value.trim();
+    const model = document.getElementById('f_model').value.trim();
+    if (!brand && !model) { toast('Indique au moins une marque ou un modèle'); return; }
+    const btn = document.getElementById('saveWatch');
+    btn.disabled = true; btn.textContent = 'Enregistrement…';
+    const data = {
+      brand, model,
+      ref: document.getElementById('f_ref').value.trim(),
+      styles: selStyles,
+      location: selLoc,
+      heatResistant: heat,
+      movement: document.getElementById('f_movement').value,
+      waterResist: document.getElementById('f_water').value.trim(),
+      purchaseDate: document.getElementById('f_purchase').value,
+      lastService: document.getElementById('f_service').value,
+      notes: document.getElementById('f_notes').value.trim(),
+      photo: photoData, logo: logoData
+    };
+    let target;
+    if (id) { target = watchById(id); Object.assign(target, data); }
+    else { target = { id: uid(), rowId: null, ...data }; watches.push(target); }
+    const ok = await upsertWatch(target);
+    if (!ok) {
+      btn.disabled = false; btn.textContent = id?'Enregistrer les modifications':'Créer la montre';
+      if (!id) watches = watches.filter(x => x !== target); // annule l'ajout local
+      return;
+    }
+    toast(id ? 'Enregistré' : 'Montre créée');
+    closeOverlay(); render();
+  });
+
+  if (id) {
+    document.getElementById('deleteWatch').addEventListener('click', async () => {
+      if (!confirm('Supprimer cette montre et tous les enregistrements de port associés ?')) return;
+      const w = watchById(id);
+      const ok = await deleteWatchRemote(w);
+      if (!ok) return;
+      watches = watches.filter(x => x.id !== id);
+      logs = logs.filter(l => l.watchId !== id);
+      closeOverlay(); toast('Supprimé'); render();
+    });
+  }
+}
+
+/* ============================================================
+   DÉTAIL
+   ============================================================ */
+function openDetail(id) {
+  const w = watchById(id); if (!w) return;
+  const wLogs = logs.filter(l => l.watchId === id).sort((a,b) => b.date.localeCompare(a.date));
+  const wc = wLogs.length;
+  const lastWorn = wLogs[0] ? wLogs[0].date : null;
+  const daysSince = lastWorn ? daysBetween(lastWorn, todayStr()) : null;
+
+  const drawer = document.getElementById('drawer');
+  drawer.innerHTML = `
+    <div class="drawer-head">
+      <h2>Détail</h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" id="editWatch">Modifier</button>
+        <button class="btn-ghost btn-sm" id="closeDrawer">✕</button>
+      </div>
+    </div>
+    <div class="drawer-body">
+      <div class="detail-photo" style="${photoBg(w.photo)}"></div>
+      <div class="detail-brand-row">
+        ${w.logo ? `<div class="detail-logo" style="${photoBg(w.logo)}"></div>` : ''}
+        <div class="detail-brand">${esc(w.brand)||'—'}</div>
+      </div>
+      <div class="detail-model">${esc(w.model)||'Sans nom'}${w.ref?` · <span style="color:var(--ink-faint);font-size:16px">${esc(w.ref)}</span>`:''}</div>
+
+      <div class="detail-chips">
+        ${(w.styles||[]).map(s => `<span class="tag">${esc(s)}</span>`).join('')}
+        ${w.location ? `<span class="tag loc">${esc(w.location)}</span>` : ''}
+        ${w.heatResistant ? `<span class="tag heat">Heat-resistant</span>` : ''}
+      </div>
+
+      <div class="detail-stats">
+        <div class="ds"><div class="n">${wc}</div><div class="l">fois porté</div></div>
+        <div class="ds"><div class="n">${daysSince===null?'—':daysSince===0?"Auj.":daysSince}</div><div class="l">${daysSince===null?'jamais porté':daysSince===0?'':'jours'}</div></div>
+      </div>
+
+      <div class="detail-attrs">
+        <div class="attr-cell"><div class="a-label">Mouvement</div><div class="a-val">${esc(w.movement)||'—'}</div></div>
+        <div class="attr-cell"><div class="a-label">Étanchéité</div><div class="a-val">${esc(w.waterResist)||'—'}</div></div>
+        <div class="attr-cell"><div class="a-label">Date d'achat</div><div class="a-val">${fmtDate(w.purchaseDate)}</div></div>
+        <div class="attr-cell"><div class="a-label">Dernière révision</div><div class="a-val">${fmtDate(w.lastService)}</div></div>
+        <div class="attr-cell"><div class="a-label">Location</div><div class="a-val">${esc(w.location)||'—'}</div></div>
+        <div class="attr-cell"><div class="a-label">Porté pour la dernière fois</div><div class="a-val">${lastWorn?fmtDate(lastWorn):'—'}</div></div>
+      </div>
+
+      ${w.notes ? `<div class="field"><label>Notes</label><div style="color:var(--ink-dim);font-size:14px;line-height:1.6">${esc(w.notes)}</div></div>` : ''}
+
+      <div style="margin-top:20px">
+        <label style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-dim);font-weight:700">Historique de port</label>
+        ${wLogs.length ? `<div style="margin-top:10px;max-height:200px;overflow-y:auto">${wLogs.map(l=>`<div style="padding:7px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink-dim)">${fmtDate(l.date)}</div>`).join('')}</div>` : '<div style="color:var(--ink-faint);font-size:14px;margin-top:8px">Jamais enregistré comme porté.</div>'}
+      </div>
+    </div>
+  `;
+  openOverlay();
+  document.getElementById('closeDrawer').addEventListener('click', closeOverlay);
+  document.getElementById('editWatch').addEventListener('click', () => openEditor(id));
+}
+
+/* ============================================================
+   JOURNAL DE PORT
+   ============================================================ */
+let logSearch = '';
+
+function renderLog() {
+  const main = document.getElementById('main');
+  const wornEntries = logs.filter(l => l.date === logDate);
+  const wornWatches = wornEntries.map(e => watchById(e.watchId)).filter(Boolean);
+  const isToday = logDate === todayStr();
+
+  main.innerHTML = `
+    <div class="view-title">Journal de port</div>
+    <div class="view-sub">Note quelle(s) montre(s) tu portes.</div>
+
+    <div class="log-hero">
+      <div class="log-date-row">
+        <span class="label">Date</span>
+        <input type="date" id="logDateInput" value="${logDate}" max="${todayStr()}">
+        ${isToday ? "<span class=\"today-tag\">● Aujourd'hui</span>" : ''}
+        ${wornWatches.length ? `<span class="today-tag" style="color:var(--brass)">${wornWatches.length} portée${wornWatches.length>1?'s':''}</span>` : ''}
+      </div>
+
+      ${wornWatches.length ? `
+        <div class="worn-stack">
+          ${wornWatches.map(w => `
+            <div class="worn-today">
+              <div class="wt-photo" style="${photoBg(w.photo)}"></div>
+              <div class="wt-info">
+                <div class="b">${esc(w.brand)}</div>
+                <div class="m">${esc(w.model)}</div>
+              </div>
+              <button class="btn btn-sm btn-danger clearWorn" data-id="${w.id}">Retirer</button>
+            </div>
+          `).join('')}
+        </div>
+      ` : `<div class="pick-label">Quelle(s) montre(s) portes-tu${isToday?" aujourd'hui":' ce jour'} ? Touche ci-dessous — tu peux en choisir plusieurs.</div>`}
+
+      ${watches.length ? `
+        <div class="search-box" style="margin-bottom:14px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="logSearch" placeholder="Rechercher une montre…" value="${esc(logSearch)}">
+        </div>
+        <div class="pick-grid" id="pickGrid"></div>
+      ` : `<div class="empty" style="padding:40px"><div class="big">⌚</div><h3>Aucune montre</h3><p>Crée d'abord des montres dans la Collection.</p></div>`}
+    </div>
+
+    <div class="recent-log" id="recentLog"></div>
+  `;
+
+  document.getElementById('logDateInput').addEventListener('change', e => { logDate = e.target.value; renderLog(); });
+  document.querySelectorAll('.clearWorn').forEach(btn => btn.addEventListener('click', async () => {
+    const entry = logs.find(l => l.date === logDate && l.watchId === btn.dataset.id);
+    if (!entry) return;
+    const ok = await deleteLogRemote(entry.id);
+    if (!ok) return;
+    logs = logs.filter(l => l !== entry);
+    toast('Enregistrement retiré'); renderLog();
+  }));
+  const ls = document.getElementById('logSearch');
+  if (ls) ls.addEventListener('input', e => { logSearch = e.target.value; drawPickGrid(); });
+
+  drawPickGrid();
+  drawRecentLog();
+}
+
+function drawPickGrid() {
+  const grid = document.getElementById('pickGrid');
+  if (!grid) return;
+  const wornIds = new Set(logs.filter(l => l.date === logDate).map(l => l.watchId));
+  const q = logSearch.toLowerCase();
+  const list = watches
+    .filter(w => !q || `${w.brand} ${w.model} ${w.ref||''}`.toLowerCase().includes(q))
+    .sort((a,b) => (a.brand+a.model).localeCompare(b.brand+b.model));
+  grid.innerHTML = list.map(w => `
+    <button class="pick-item ${wornIds.has(w.id)?'selected':''}" data-id="${w.id}">
+      ${wornIds.has(w.id)?'<span class="pick-check">✓</span>':''}
+      <div class="pi-photo" style="${photoBg(w.photo)}"></div>
+      <div class="pi-body">
+        <div class="pi-brand">${esc(w.brand)}</div>
+        <div class="pi-model">${esc(w.model)}</div>
+      </div>
+    </button>
+  `).join('');
+  grid.querySelectorAll('.pick-item').forEach(el => el.addEventListener('click', async () => {
+    const wid = el.dataset.id;
+    const exists = logs.find(l => l.date === logDate && l.watchId === wid);
+    const w = watchById(wid);
+    if (exists) {
+      const ok = await deleteLogRemote(exists.id);
+      if (!ok) return;
+      logs = logs.filter(l => l !== exists);
+      toast(`${w.brand} ${w.model} retirée`);
+    } else {
+      const rowId = await addLogRemote(wid, logDate);
+      if (!rowId) return;
+      logs.push({ id: rowId, date: logDate, watchId: wid });
+      toast(`${w.brand} ${w.model} enregistrée`);
+    }
+    renderLog();
+  }));
+}
+
+function drawRecentLog() {
+  const box = document.getElementById('recentLog');
+  if (!box) return;
+  const byDate = {};
+  logs.forEach(l => { (byDate[l.date] = byDate[l.date] || []).push(l); });
+  const dates = Object.keys(byDate).sort((a,b) => b.localeCompare(a)).slice(0, 14);
+  if (!dates.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<h3>Derniers enregistrements</h3>` + dates.map(date => {
+    return byDate[date].map((l, i) => {
+      const w = watchById(l.watchId); if (!w) return '';
+      return `<div class="log-row">
+        <span class="lr-date">${i === 0 ? fmtDate(date) : ''}</span>
+        <div class="lr-photo" style="${photoBg(w.photo)}"></div>
+        <div class="lr-name"><div class="b">${esc(w.brand)}</div><div class="m">${esc(w.model)}</div></div>
+      </div>`;
+    }).join('');
+  }).join('');
+}
+
+/* ============================================================
+   ANALYSE
+   ============================================================ */
+function renderStats() {
+  const main = document.getElementById('main');
+  const totalLogs = logs.length;
+  const distinctDays = new Set(logs.map(l => l.date)).size;
+  const activeWatches = new Set(logs.map(l => l.watchId)).size;
+
+  if (!watches.length) {
+    main.innerHTML = `<div class="view-title">Analyse</div>
+      <div class="empty"><div class="big">📊</div><h3>Pas encore de données</h3><p>Crée des montres et enregistre tes ports pour voir les analyses.</p></div>`;
+    return;
+  }
+
+  const counts = watches.map(w => ({ w, n: logs.filter(l => l.watchId === w.id).length }))
+    .sort((a,b) => b.n - a.n);
+  const maxN = Math.max(1, ...counts.map(c => c.n));
+
+  const dormant = watches.map(w => {
+    const wl = logs.filter(l => l.watchId === w.id).map(l => l.date).sort();
+    const last = wl.length ? wl[wl.length-1] : null;
+    return { w, last, days: last ? daysBetween(last, todayStr()) : null };
+  }).sort((a,b) => {
+    if (a.days === null) return 1; if (b.days === null) return -1;
+    return b.days - a.days;
+  });
+
+  // répartition par style (chaque port compte pour chacun de ses styles)
+  const styleCounts = {};
+  logs.forEach(l => {
+    const w = watchById(l.watchId); if (!w) return;
+    const sts = (w.styles && w.styles.length) ? w.styles : ['Sans style'];
+    sts.forEach(s => styleCounts[s] = (styleCounts[s]||0)+1);
+  });
+  const styleArr = Object.entries(styleCounts).sort((a,b) => b[1]-a[1]);
+  const styleTotal = styleArr.reduce((s,x) => s+x[1], 0);
+  const palette = ['#c8a45c','#7ba05b','#6b8cae','#c0705f','#a58bc0','#c9a26b'];
+
+  const favBrand = counts[0] && counts[0].n ? counts[0].w.brand : '—';
+
+  main.innerHTML = `
+    <div class="view-title">Analyse</div>
+    <div class="view-sub">Comment tu portes réellement ta collection.</div>
+
+    <div class="stat-row">
+      <div class="stat-card"><div class="sc-val">${distinctDays}</div><div class="sc-label">Jours enregistrés</div></div>
+      <div class="stat-card"><div class="sc-val">${totalLogs}</div><div class="sc-label">Ports au total</div></div>
+      <div class="stat-card"><div class="sc-val">${activeWatches}<span style="font-size:18px;color:var(--ink-faint)">/${watches.length}</span></div><div class="sc-label">Montres en rotation</div></div>
+      <div class="stat-card"><div class="sc-val">${esc(favBrand)}</div><div class="sc-label">Marque préférée</div></div>
+    </div>
+
+    <div class="panel-block">
+      <h3>Fréquence de port</h3>
+      <div class="ph-sub">Combien de fois chaque montre a été portée.</div>
+      ${counts.map(c => `
+        <div class="bar-row">
+          <div class="br-label"><span class="brand">${esc(c.w.brand)}</span>${esc(c.w.model)}</div>
+          <div class="bar-track">
+            <div class="bar-fill ${c.n===0?'zero':''}" style="width:${c.n===0?100:Math.max(8,(c.n/maxN)*100)}%">
+              <span class="v">${c.n===0?'jamais':c.n+'×'}</span>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="panel-block">
+      <h3>Montres en sommeil</h3>
+      <div class="ph-sub">Pas portées depuis le plus longtemps — peut-être l'heure du poignet.</div>
+      <div class="dormant-list">
+        ${dormant.map(d => `
+          <div class="dm-row">
+            <div class="dm-photo" style="${photoBg(d.w.photo)}"></div>
+            <div class="dm-info"><div class="b">${esc(d.w.brand)}</div><div class="m">${esc(d.w.model)}</div></div>
+            <div class="dm-days ${d.days===null?'never':d.days>=30?'warn':''}">
+              ${d.days===null ? '<div class="n">Jamais</div><div class="l">portée</div>'
+                : d.days===0 ? '<div class="n" style="color:var(--green)">Auj.</div><div class="l">portée</div>'
+                : `<div class="n">${d.days}</div><div class="l">jours</div>`}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    ${styleArr.length ? `
+    <div class="panel-block">
+      <h3>Répartition par style</h3>
+      <div class="ph-sub">Les catégories que tu portes le plus.</div>
+      <div class="donut-wrap">
+        <svg width="180" height="180" viewBox="0 0 180 180" id="donut"></svg>
+        <div class="donut-legend">
+          ${styleArr.map((s,i) => `
+            <div class="legend-row">
+              <span class="legend-swatch" style="background:${palette[i%palette.length]}"></span>
+              ${esc(s[0])}
+              <span class="lg-val">${s[1]}× · ${Math.round(s[1]/styleTotal*100)}%</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>` : ''}
+  `;
+
+  if (styleArr.length) drawDonut(styleArr, styleTotal, palette);
+}
+
+function drawDonut(data, total, palette) {
+  const svg = document.getElementById('donut');
+  const cx=90, cy=90, r=64, sw=28;
+  let angle = -Math.PI/2;
+  let html = '';
+  data.forEach((d,i) => {
+    const frac = d[1]/total;
+    const a2 = angle + frac*Math.PI*2;
+    const large = frac > 0.5 ? 1 : 0;
+    const x1 = cx + r*Math.cos(angle), y1 = cy + r*Math.sin(angle);
+    const x2 = cx + r*Math.cos(a2), y2 = cy + r*Math.sin(a2);
+    if (data.length === 1) {
+      html += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${palette[0]}" stroke-width="${sw}"/>`;
+    } else {
+      html += `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}" fill="none" stroke="${palette[i%palette.length]}" stroke-width="${sw}"/>`;
+    }
+    angle = a2;
+  });
+  html += `<text x="${cx}" y="${cy-4}" text-anchor="middle" fill="#e8e5dd" font-family="Georgia" font-size="26">${total}</text>`;
+  html += `<text x="${cx}" y="${cy+14}" text-anchor="middle" fill="#626873" font-size="10" letter-spacing="1">PORTS</text>`;
+  svg.innerHTML = html;
+}
+
+/* ============================================================
+   OVERLAY
+   ============================================================ */
+function openOverlay() { document.getElementById('overlay').classList.add('open'); }
+function closeOverlay() { document.getElementById('overlay').classList.remove('open'); editingId = null; }
+document.getElementById('overlay').addEventListener('click', e => {
+  if (e.target.id === 'overlay') closeOverlay();
+});
+
+/* ============================================================
+   AUTHENTIFICATION
+   ============================================================ */
+let authMode = 'login'; // 'login' | 'signup'
+
+function authMsg(text, kind) {
+  const el = document.getElementById('authMsg');
+  el.textContent = text || '';
+  el.className = 'auth-msg' + (kind ? ' ' + kind : '');
+}
+
+function renderAuthMode() {
+  const submit = document.getElementById('authSubmit');
+  const toggle = document.getElementById('authToggle');
+  const pw = document.getElementById('authPassword');
+  if (authMode === 'login') {
+    submit.textContent = 'Se connecter';
+    toggle.innerHTML = 'Pas encore de compte ? <a>Créer un compte</a>';
+    pw.autocomplete = 'current-password';
+  } else {
+    submit.textContent = 'Créer mon compte';
+    toggle.innerHTML = 'Déjà un compte ? <a>Se connecter</a>';
+    pw.autocomplete = 'new-password';
+  }
+  authMsg('');
+}
+
+async function handleAuthSubmit() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if (!email || !password) { authMsg('Renseigne email et mot de passe', 'err'); return; }
+  if (password.length < 6) { authMsg('Mot de passe : 6 caractères minimum', 'err'); return; }
+  const submit = document.getElementById('authSubmit');
+  submit.disabled = true; submit.textContent = '…';
+
+  if (authMode === 'signup') {
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error) { authMsg(error.message, 'err'); submit.disabled = false; renderAuthMode(); return; }
+    if (data.session) { await enterApp(); return; }
+    // pas de session => confirmation email requise
+    authMsg('Compte créé. Vérifie tes emails pour confirmer, puis connecte-toi.', 'ok');
+    authMode = 'login'; submit.disabled = false; renderAuthMode();
+    authMsg('Compte créé. Confirme par email si demandé, puis connecte-toi.', 'ok');
+  } else {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) { authMsg(error.message, 'err'); submit.disabled = false; renderAuthMode(); return; }
+    await enterApp();
+  }
+}
+
+async function enterApp() {
+  const { data } = await sb.auth.getUser();
+  currentUser = data.user;
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('appShell').classList.remove('hidden');
+  const emailEl = document.getElementById('userEmail');
+  if (emailEl && currentUser) emailEl.textContent = currentUser.email;
+  await loadData();
+  render();
+}
+
+function wireAuthUI() {
+  document.getElementById('authSubmit').addEventListener('click', handleAuthSubmit);
+  document.getElementById('authToggle').addEventListener('click', e => {
+    if (e.target.tagName === 'A') { authMode = authMode === 'login' ? 'signup' : 'login'; renderAuthMode(); }
+  });
+  document.getElementById('authPassword').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleAuthSubmit();
+  });
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    location.reload();
+  });
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(async function init() {
+  wireAuthUI();
+  renderAuthMode();
+  const { data } = await sb.auth.getSession();
+  if (data.session) {
+    await enterApp();
+  }
+})();
+</script>
+</body>
+</html>
