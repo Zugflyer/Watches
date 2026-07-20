@@ -307,6 +307,18 @@
     padding: 0; white-space: nowrap;
   }
   .bar-fill.dormant.never.label-out .v { color: var(--ink-faint); }
+  /* Dormant-Analyse: silberner Balken + feste Dauer-Spalte rechts */
+  .dormant-row .bar-track { overflow: hidden; }
+  .bar-fill.silver {
+    background: linear-gradient(90deg, #b9c2c9, #e8edf1);
+  }
+  .bar-fill.silver.never { background: var(--panel-2); }
+  .br-duration {
+    width: 150px; flex-shrink: 0; text-align: right; font-size: 13px; font-weight: 700;
+    color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .br-duration.never { color: var(--ink-faint); font-weight: 600; }
+  @media (max-width: 640px) { .br-duration { width: 96px; font-size: 11px; white-space: normal; } }
 
   .dormant-list .dm-row {
     display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line);
@@ -1482,21 +1494,16 @@ function anaDormantChart(rows) {
   const maxDays = Math.max(1, ...rows.map(r => r.days===null ? 0 : r.days));
   return rows.map(r => {
     const isNever = r.days === null;
-    // echte proportionale Breite (0 Tage => 0 %); nie getragen => voller Balken
     const pctW = isNever ? 100 : (r.days / maxDays) * 100;
-    const cls = isNever ? 'never' : (r.days>=30 ? 'warn' : '');
     const label = isNever ? 'jamais' : formatDuration(r.days);
-    // Label passt bei längerem Text seltener rein: Schwelle höher -> öfter daneben
-    const inside = isNever || pctW >= 40;
     return `
-    <div class="bar-row">
+    <div class="bar-row dormant-row">
       <div class="br-photo" style="${photoBg(r.w.photo)}">${r.w.photo?'':'⌚'}</div>
       <div class="br-label"><span class="brand">${esc(r.w.brand)}</span>${esc(r.w.model)}</div>
       <div class="bar-track">
-        <div class="bar-fill dormant ${cls} ${inside?'':'label-out'}" style="width:${pctW}%">
-          <span class="v">${label}</span>
-        </div>
+        <div class="bar-fill silver ${isNever?'never':''}" style="width:${pctW}%"></div>
       </div>
+      <div class="br-duration ${isNever?'never':''}">${label}</div>
     </div>`;
   }).join('');
 }
