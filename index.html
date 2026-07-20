@@ -126,6 +126,13 @@
     border-bottom: 1px solid var(--line);
   }
   .card-photo .placeholder { color: var(--ink-faint); font-size: 40px; }
+  .card-photo-btn {
+    position: absolute; bottom: 8px; left: 8px; z-index: 3;
+    font-size: 12px; font-weight: 700; color: #1a1a1a; background: var(--brass);
+    border: none; border-radius: 20px; padding: 5px 11px; cursor: pointer;
+    opacity: 0.92; transition: opacity .15s, transform .15s; box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  }
+  .card-photo-btn:hover { opacity: 1; transform: translateY(-1px); }
   .card-logo {
     position: absolute; top: 10px; left: 10px; width: 34px; height: 34px;
     border-radius: 50%; background: rgba(20,23,28,.75) center/70% no-repeat;
@@ -456,6 +463,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<input type="file" id="quickPhotoInput" accept="image/*" style="display:none">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -709,6 +717,7 @@ function drawGrid() {
         ${!w.photo ? '<span class="placeholder">⌚</span>' : ''}
         ${w.logo ? `<div class="card-logo" style="${photoBg(w.logo)}"></div>` : ''}
         ${wc > 0 ? `<div class="card-badge">${wc}× porté</div>` : ''}
+        <button class="card-photo-btn" data-photo-id="${w.id}" title="${w.photo?'Changer la photo':'Ajouter une photo'}">${w.photo?'✎':'＋ photo'}</button>
       </div>
       <div class="card-body">
         <div class="card-brand">${esc(w.brand)||'—'}</div>
@@ -722,7 +731,28 @@ function drawGrid() {
       </div>
     </div>`;
   }).join('');
-  grid.querySelectorAll('.card').forEach(c => c.addEventListener('click', () => openDetail(c.dataset.id)));
+  grid.querySelectorAll('.card').forEach(c => c.addEventListener('click', e => {
+    if (e.target.closest('.card-photo-btn')) return; // géré séparément
+    openDetail(c.dataset.id);
+  }));
+  grid.querySelectorAll('.card-photo-btn').forEach(btn => btn.addEventListener('click', e => {
+    e.stopPropagation();
+    quickPhotoTarget = btn.dataset.photoId;
+    document.getElementById('quickPhotoInput').click();
+  }));
+}
+
+let quickPhotoTarget = null;
+async function handleQuickPhoto(file) {
+  if (!file || !quickPhotoTarget) return;
+  const w = watchById(quickPhotoTarget);
+  if (!w) return;
+  toast('Traitement de la photo…');
+  const dataUrl = await fileToDataURL(file, 900);
+  w.photo = dataUrl;
+  const ok = await upsertWatch(w);
+  if (ok) { toast(`Photo ajoutée : ${w.brand} ${w.model}`); drawGrid(); }
+  quickPhotoTarget = null;
 }
 
 /* ============================================================
@@ -1318,6 +1348,8 @@ function wireAuthUI() {
 (async function init() {
   wireAuthUI();
   renderAuthMode();
+  const qp = document.getElementById('quickPhotoInput');
+  if (qp) qp.addEventListener('change', e => { handleQuickPhoto(e.target.files[0]); e.target.value = ''; });
   const { data } = await sb.auth.getSession();
   if (data.session) {
     await enterApp();
