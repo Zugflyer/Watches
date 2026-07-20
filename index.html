@@ -246,6 +246,29 @@
   .stat-card .sc-label { font-size: 12px; color: var(--ink-dim); margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
   .panel-block { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 22px; margin-bottom: 22px; }
+  /* Analyse-Dashboard-Kacheln */
+  .tile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .ana-tile {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 26px 20px; text-align: left; cursor: pointer; transition: all .16s;
+    display: flex; flex-direction: column; gap: 6px; min-height: 140px;
+  }
+  .ana-tile:hover { transform: translateY(-3px); border-color: var(--brass-deep); box-shadow: 0 12px 30px rgba(0,0,0,.3); }
+  .ana-tile-icon { color: var(--brass); margin-bottom: 10px; }
+  .ana-tile-title { font-family: var(--font-display); font-size: 19px; line-height: 1.2; }
+  .ana-tile-sub { font-size: 12px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+  /* Analyse-Steuerleiste */
+  .ana-bar { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+  .ana-filters {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+    padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .bar-fill.dormant { background: linear-gradient(90deg, var(--brass-deep), var(--brass)); }
+  .bar-fill.dormant.warn { background: linear-gradient(90deg, #8a4a3f, var(--red)); }
+  .bar-fill.dormant.never { background: var(--panel-2); }
+  .bar-fill.dormant.never .v { color: var(--ink-faint); }
+  @media (max-width: 900px) { .tile-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .tile-grid { grid-template-columns: 1fr; } }
   .panel-block h3 {
     font-family: var(--font-display); font-weight: normal; font-size: 19px; margin-bottom: 4px;
     display: flex; align-items: center; gap: 10px;
@@ -675,6 +698,7 @@ async function fileToDataURL(file, maxDim) {
 document.getElementById('tabs').addEventListener('click', e => {
   const btn = e.target.closest('button'); if (!btn) return;
   currentView = btn.dataset.view;
+  if (currentView === 'stats') statsView = 'dashboard';  // immer mit Übersicht starten
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b === btn));
   render();
 });
@@ -1217,125 +1241,277 @@ function drawRecentLog() {
 /* ============================================================
    ANALYSE
    ============================================================ */
+let statsView = 'dashboard';   // 'dashboard' | 'freq-bar' | 'freq-pie' | 'dormant'
+// Filter- & Sortierzustand je Detailanalyse (geteilt)
+let anaLocation = '';   // '' | 'Paris' | 'Suisse'
+let anaStyles = [];     // Mehrfachauswahl
+let anaHeat = false;
+let anaSort = 'count-desc';
+
+const PALETTE = ['#c8a45c','#7ba05b','#6b8cae','#c0705f','#a58bc0','#c9a26b','#5f9ea0','#b0885f','#8a9a5b','#c98a6b'];
+
+/* Wendischt die Trage-Anzahl einer Uhr */
+function watchWearCount(id) { return logs.filter(l => l.watchId === id).length; }
+function watchLastWorn(id) {
+  const ds = logs.filter(l => l.watchId === id).map(l => l.date).sort();
+  return ds.length ? ds[ds.length-1] : null;
+}
+
+/* Wendet die aktuellen Analyse-Filter auf die Uhrenliste an */
+function applyAnaFilters(list) {
+  return list.filter(w => {
+    const locOk = !anaLocation || w.location === anaLocation;
+    const styleOk = anaStyles.length === 0 || (w.styles||[]).some(s => anaStyles.includes(s));
+    const heatOk = !anaHeat || w.heatResistant;
+    return locOk && styleOk && heatOk;
+  });
+}
+
+function anaFiltersActive() { return anaLocation || anaStyles.length || anaHeat; }
+
 function renderStats() {
   const main = document.getElementById('main');
-  const totalLogs = logs.length;
-  const distinctDays = new Set(logs.map(l => l.date)).size;
-  const activeWatches = new Set(logs.map(l => l.watchId)).size;
-
   if (!watches.length) {
     main.innerHTML = `<div class="view-title">Analyse</div>
       <div class="empty"><div class="big">📊</div><h3>Pas encore de données</h3><p>Crée des montres et enregistre tes ports pour voir les analyses.</p></div>`;
     return;
   }
+  if (statsView === 'dashboard') return renderStatsDashboard();
+  if (statsView === 'freq-bar') return renderAnalysis('freq-bar');
+  if (statsView === 'freq-pie') return renderAnalysis('freq-pie');
+  if (statsView === 'dormant') return renderAnalysis('dormant');
+}
 
-  const counts = watches.map(w => ({ w, n: logs.filter(l => l.watchId === w.id).length }))
-    .sort((a,b) => b.n - a.n);
-  const maxN = Math.max(1, ...counts.map(c => c.n));
+/* ---------- Dashboard mit Kacheln ---------- */
+function renderStatsDashboard() {
+  const main = document.getElementById('main');
+  const tiles = [
+    { id:'freq-bar', title:'Fréquence de port', sub:'Diagramme à barres', icon:barIcon() },
+    { id:'freq-pie', title:'Fréquence de port', sub:'Camembert', icon:pieIcon() },
+    { id:'dormant', title:'Depuis quand plus portée', sub:'Diagramme à barres', icon:barIcon() },
+  ];
+  main.innerHTML = `
+    <div class="view-title">Analyse</div>
+    <div class="view-sub">Choisis une analyse.</div>
+    <div class="tile-grid">
+      ${tiles.map(t => `
+        <button class="ana-tile" data-tile="${t.id}">
+          <div class="ana-tile-icon">${t.icon}</div>
+          <div class="ana-tile-title">${t.title}</div>
+          <div class="ana-tile-sub">${t.sub}</div>
+        </button>
+      `).join('')}
+    </div>
+  `;
+  main.querySelectorAll('.ana-tile').forEach(el => el.addEventListener('click', () => {
+    statsView = el.dataset.tile;
+    renderStats();
+  }));
+}
 
-  const dormant = watches.map(w => {
-    const wl = logs.filter(l => l.watchId === w.id).map(l => l.date).sort();
-    const last = wl.length ? wl[wl.length-1] : null;
-    return { w, last, days: last ? daysBetween(last, todayStr()) : null };
-  }).sort((a,b) => {
-    if (a.days === null) return 1; if (b.days === null) return -1;
-    return b.days - a.days;
+function barIcon() {
+  return `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="6"/><line x1="16" y1="20" x2="16" y2="14"/><line x1="22" y1="20" x2="2" y2="20"/></svg>`;
+}
+function pieIcon() {
+  return `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12V2a10 10 0 0 1 10 10z" fill="currentColor" stroke="none"/></svg>`;
+}
+
+/* ---------- Gemeinsame Filter-/Sortierleiste ---------- */
+function anaControlsHTML(sortOptions) {
+  return `
+    <div class="ana-bar">
+      <button class="btn btn-sm" id="anaBack">← Analyses</button>
+      <div class="ana-filters">
+        <div class="filter-group">
+          <span class="fg-label">Location</span>
+          ${LOCATIONS.map(l => `<button class="fchip ${anaLocation===l?'on':''}" data-aloc="${l}">${l}</button>`).join('')}
+        </div>
+        <div class="filter-group">
+          <span class="fg-label">Style</span>
+          ${STYLES.map(s => `<button class="fchip ${anaStyles.includes(s)?'on':''}" data-astyle="${s}">${s}</button>`).join('')}
+        </div>
+        <div class="filter-group">
+          <span class="fg-label">Attribut</span>
+          <button class="fchip heat ${anaHeat?'on':''}" id="anaHeatChip">Heat-resistant</button>
+        </div>
+        <select class="filter" id="anaSort">
+          ${sortOptions.map(o => `<option value="${o.v}" ${anaSort===o.v?'selected':''}>${o.l}</option>`).join('')}
+        </select>
+        <button class="filter-reset ${anaFiltersActive()?'':'hidden'}" id="anaReset">✕ Réinitialiser</button>
+      </div>
+    </div>
+  `;
+}
+
+function wireAnaControls(sortOptions) {
+  document.getElementById('anaBack').addEventListener('click', () => { statsView='dashboard'; renderStats(); });
+  document.querySelectorAll('.fchip[data-aloc]').forEach(b => b.addEventListener('click', () => {
+    anaLocation = (anaLocation===b.dataset.aloc)?'':b.dataset.aloc; renderStats();
+  }));
+  document.querySelectorAll('.fchip[data-astyle]').forEach(b => b.addEventListener('click', () => {
+    const s=b.dataset.astyle;
+    anaStyles = anaStyles.includes(s) ? anaStyles.filter(x=>x!==s) : [...anaStyles, s];
+    renderStats();
+  }));
+  const hc = document.getElementById('anaHeatChip');
+  if (hc) hc.addEventListener('click', () => { anaHeat=!anaHeat; renderStats(); });
+  const sel = document.getElementById('anaSort');
+  if (sel) sel.addEventListener('change', e => { anaSort=e.target.value; renderStats(); });
+  const rs = document.getElementById('anaReset');
+  if (rs) rs.addEventListener('click', () => { anaLocation=''; anaStyles=[]; anaHeat=false; renderStats(); });
+}
+
+/* ---------- Detailanalysen ---------- */
+function renderAnalysis(kind) {
+  const main = document.getElementById('main');
+  const totalLogs = logs.length;
+
+  // Datensatz je Uhr aufbauen (gefiltert)
+  let rows = applyAnaFilters(watches).map(w => {
+    const n = watchWearCount(w.id);
+    const last = watchLastWorn(w.id);
+    const days = last ? daysBetween(last, todayStr()) : null;
+    return { w, n, last, days, pct: totalLogs ? n/totalLogs*100 : 0 };
   });
 
-  // répartition par style (chaque port compte pour chacun de ses styles)
-  const styleCounts = {};
-  logs.forEach(l => {
-    const w = watchById(l.watchId); if (!w) return;
-    const sts = (w.styles && w.styles.length) ? w.styles : ['Sans style'];
-    sts.forEach(s => styleCounts[s] = (styleCounts[s]||0)+1);
-  });
-  const styleArr = Object.entries(styleCounts).sort((a,b) => b[1]-a[1]);
-  const styleTotal = styleArr.reduce((s,x) => s+x[1], 0);
-  const palette = ['#c8a45c','#7ba05b','#6b8cae','#c0705f','#a58bc0','#c9a26b'];
+  // Sortieroptionen je Analyse
+  const sortOptions = (kind === 'dormant')
+    ? [
+        { v:'days-desc', l:'Trier : plus longtemps non portée' },
+        { v:'days-asc',  l:'Trier : portée récemment' },
+        { v:'count-desc',l:'Trier : plus portée' },
+        { v:'count-asc', l:'Trier : moins portée' },
+        { v:'brand',     l:'Trier : marque' },
+      ]
+    : [
+        { v:'count-desc',l:'Trier : plus portée' },
+        { v:'count-asc', l:'Trier : moins portée' },
+        { v:'days-desc', l:'Trier : plus longtemps non portée' },
+        { v:'days-asc',  l:'Trier : portée récemment' },
+        { v:'brand',     l:'Trier : marque' },
+      ];
+  // gültigen Default sicherstellen
+  if (!sortOptions.some(o => o.v === anaSort)) anaSort = sortOptions[0].v;
 
-  const favBrand = counts[0] && counts[0].n ? counts[0].w.brand : '—';
+  // Sortierung anwenden
+  const bigDays = 10**9; // null (nie getragen) ganz nach hinten/oben
+  rows.sort((a,b) => {
+    switch (anaSort) {
+      case 'count-desc': return b.n - a.n;
+      case 'count-asc':  return a.n - b.n;
+      case 'days-desc':  return (b.days===null?bigDays:b.days) - (a.days===null?bigDays:a.days);
+      case 'days-asc':   return (a.days===null?bigDays:a.days) - (b.days===null?bigDays:b.days);
+      case 'brand':      return (a.w.brand+a.w.model).localeCompare(b.w.brand+b.w.model);
+      default: return 0;
+    }
+  });
+
+  const titleMap = {
+    'freq-bar': 'Fréquence de port',
+    'freq-pie': 'Fréquence de port',
+    'dormant':  'Depuis quand plus portée'
+  };
+  const count = rows.length;
+
+  let body = '';
+  if (kind === 'freq-bar') body = anaBarChart(rows, totalLogs);
+  else if (kind === 'freq-pie') body = anaPieChart(rows);
+  else if (kind === 'dormant') body = anaDormantChart(rows);
 
   main.innerHTML = `
+    ${anaControlsHTML(sortOptions)}
     <div class="panel-block">
-      <h3>Depuis 1 septembre 2025</h3>
-      <div class="ph-sub">Combien de fois chaque montre a été portée.</div>
-      ${counts.map(c => {
-        const pct = totalLogs ? (c.n / totalLogs * 100) : 0;
-        const pctStr = pct >= 10 ? pct.toFixed(1) : pct.toFixed(1);
-        return `
-        <div class="bar-row">
-          <div class="br-photo" style="${photoBg(c.w.photo)}">${c.w.photo?'':'⌚'}</div>
-          <div class="br-label"><span class="brand">${esc(c.w.brand)}</span>${esc(c.w.model)}</div>
-          <div class="br-pct">${pctStr}%</div>
-          <div class="bar-track">
-            <div class="bar-fill ${c.n===0?'zero':''}" style="width:${c.n===0?100:Math.max(8,(c.n/maxN)*100)}%">
-              <span class="v">${c.n===0?'jamais':c.n+'×'}</span>
-            </div>
-          </div>
-        </div>`;
-      }).join('')}
+      <h3>${titleMap[kind]} <span class="count-pill">${count} montre${count>1?'s':''}</span></h3>
+      ${body}
     </div>
+  `;
+  wireAnaControls(sortOptions);
+  if (kind === 'freq-pie') drawAnaPie(rows);
+}
 
-    <div class="panel-block">
-      <h3>Montres en sommeil</h3>
-      <div class="ph-sub">Pas portées depuis le plus longtemps — peut-être l'heure du poignet.</div>
-      <div class="dormant-list">
-        ${dormant.map(d => `
-          <div class="dm-row">
-            <div class="dm-photo" style="${photoBg(d.w.photo)}"></div>
-            <div class="dm-info"><div class="b">${esc(d.w.brand)}</div><div class="m">${esc(d.w.model)}</div></div>
-            <div class="dm-days ${d.days===null?'never':d.days>=30?'warn':''}">
-              ${d.days===null ? '<div class="n">Jamais</div><div class="l">portée</div>'
-                : d.days===0 ? '<div class="n" style="color:var(--green)">Auj.</div><div class="l">portée</div>'
-                : `<div class="n">${d.days}</div><div class="l">jours</div>`}
-            </div>
+/* Balken: Tragefrequenz */
+function anaBarChart(rows, totalLogs) {
+  if (!rows.length) return `<div class="ph-sub">Aucune montre ne correspond aux filtres.</div>`;
+  const maxN = Math.max(1, ...rows.map(r => r.n));
+  return rows.map(r => `
+    <div class="bar-row">
+      <div class="br-photo" style="${photoBg(r.w.photo)}">${r.w.photo?'':'⌚'}</div>
+      <div class="br-label"><span class="brand">${esc(r.w.brand)}</span>${esc(r.w.model)}</div>
+      <div class="br-pct">${r.pct.toFixed(1)}%</div>
+      <div class="bar-track">
+        <div class="bar-fill ${r.n===0?'zero':''}" style="width:${r.n===0?100:Math.max(8,(r.n/maxN)*100)}%">
+          <span class="v">${r.n===0?'jamais':r.n+'×'}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* Balken: seit wann nicht mehr getragen */
+function anaDormantChart(rows) {
+  if (!rows.length) return `<div class="ph-sub">Aucune montre ne correspond aux filtres.</div>`;
+  const maxDays = Math.max(1, ...rows.map(r => r.days===null ? 0 : r.days));
+  return rows.map(r => {
+    const isNever = r.days === null;
+    const w = isNever ? 100 : Math.max(8, (r.days/maxDays)*100);
+    const cls = isNever ? 'never' : (r.days>=30 ? 'warn' : '');
+    const label = isNever ? 'jamais' : (r.days===0 ? "auj." : r.days+' j');
+    return `
+    <div class="bar-row">
+      <div class="br-photo" style="${photoBg(r.w.photo)}">${r.w.photo?'':'⌚'}</div>
+      <div class="br-label"><span class="brand">${esc(r.w.brand)}</span>${esc(r.w.model)}</div>
+      <div class="bar-track">
+        <div class="bar-fill dormant ${cls}" style="width:${w}%">
+          <span class="v">${label}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* Kreisdiagramm: Tragefrequenz je Uhr */
+function anaPieChart(rows) {
+  const withWear = rows.filter(r => r.n > 0);
+  if (!withWear.length) return `<div class="ph-sub">Aucune montre portée ne correspond aux filtres.</div>`;
+  const total = withWear.reduce((s,r) => s+r.n, 0);
+  return `
+    <div class="donut-wrap">
+      <svg width="200" height="200" viewBox="0 0 200 200" id="anaPie"></svg>
+      <div class="donut-legend">
+        ${withWear.map((r,i) => `
+          <div class="legend-row">
+            <span class="legend-swatch" style="background:${PALETTE[i%PALETTE.length]}"></span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.w.brand)} ${esc(r.w.model)}</span>
+            <span class="lg-val">${r.n}× · ${Math.round(r.n/total*100)}%</span>
           </div>
         `).join('')}
       </div>
     </div>
-
-    ${styleArr.length ? `
-    <div class="panel-block">
-      <h3>Répartition par style</h3>
-      <div class="ph-sub">Les catégories que tu portes le plus.</div>
-      <div class="donut-wrap">
-        <svg width="180" height="180" viewBox="0 0 180 180" id="donut"></svg>
-        <div class="donut-legend">
-          ${styleArr.map((s,i) => `
-            <div class="legend-row">
-              <span class="legend-swatch" style="background:${palette[i%palette.length]}"></span>
-              ${esc(s[0])}
-              <span class="lg-val">${s[1]}× · ${Math.round(s[1]/styleTotal*100)}%</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    </div>` : ''}
   `;
-
-  if (styleArr.length) drawDonut(styleArr, styleTotal, palette);
 }
 
-function drawDonut(data, total, palette) {
-  const svg = document.getElementById('donut');
-  const cx=90, cy=90, r=64, sw=28;
-  let angle = -Math.PI/2;
-  let html = '';
-  data.forEach((d,i) => {
-    const frac = d[1]/total;
+function drawAnaPie(rows) {
+  const svg = document.getElementById('anaPie');
+  if (!svg) return;
+  const withWear = rows.filter(r => r.n > 0);
+  const total = withWear.reduce((s,r) => s+r.n, 0);
+  const cx=100, cy=100, r=70, sw=32;
+  let angle = -Math.PI/2, html = '';
+  withWear.forEach((row,i) => {
+    const frac = row.n/total;
     const a2 = angle + frac*Math.PI*2;
     const large = frac > 0.5 ? 1 : 0;
     const x1 = cx + r*Math.cos(angle), y1 = cy + r*Math.sin(angle);
     const x2 = cx + r*Math.cos(a2), y2 = cy + r*Math.sin(a2);
-    if (data.length === 1) {
-      html += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${palette[0]}" stroke-width="${sw}"/>`;
+    if (withWear.length === 1) {
+      html += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${PALETTE[0]}" stroke-width="${sw}"/>`;
     } else {
-      html += `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}" fill="none" stroke="${palette[i%palette.length]}" stroke-width="${sw}"/>`;
+      html += `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}" fill="none" stroke="${PALETTE[i%PALETTE.length]}" stroke-width="${sw}"/>`;
     }
     angle = a2;
   });
-  html += `<text x="${cx}" y="${cy-4}" text-anchor="middle" fill="#e8e5dd" font-family="Georgia" font-size="26">${total}</text>`;
-  html += `<text x="${cx}" y="${cy+14}" text-anchor="middle" fill="#626873" font-size="10" letter-spacing="1">PORTS</text>`;
+  html += `<text x="${cx}" y="${cy-4}" text-anchor="middle" fill="#e8e5dd" font-family="Georgia" font-size="28">${total}</text>`;
+  html += `<text x="${cx}" y="${cy+16}" text-anchor="middle" fill="#626873" font-size="11" letter-spacing="1">PORTS</text>`;
   svg.innerHTML = html;
 }
 
