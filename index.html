@@ -102,6 +102,27 @@
   .btn-sm { padding: 6px 12px; font-size: 13px; }
 
   .toolbar { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; align-items: center; }
+  .filter-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 18px;
+    padding: 14px 16px; margin-bottom: 22px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .filter-group { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .fg-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-faint); font-weight: 700; margin-right: 2px; }
+  .fchip {
+    padding: 6px 13px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    background: var(--bg); border: 1px solid var(--line); color: var(--ink-dim); cursor: pointer;
+    transition: all .13s; white-space: nowrap;
+  }
+  .fchip:hover { border-color: var(--brass-deep); color: var(--ink); }
+  .fchip.on { background: var(--brass); color: #1a1a1a; border-color: var(--brass); }
+  .fchip.heat.on { background: var(--red); border-color: var(--red); color: #fff; }
+  .filter-reset {
+    margin-left: auto; font-size: 13px; font-weight: 600; color: var(--ink-dim);
+    background: transparent; border: 1px solid var(--line); border-radius: 20px;
+    padding: 6px 13px; cursor: pointer; transition: all .13s;
+  }
+  .filter-reset:hover { border-color: var(--red); color: var(--red); }
   .search-box { position: relative; flex: 1; min-width: 200px; }
   .search-box input {
     width: 100%; padding: 10px 14px 10px 38px; background: var(--panel);
@@ -656,22 +677,21 @@ function render() {
 /* ============================================================
    COLLECTION
    ============================================================ */
-let pfSearch = '', pfStyle = '', pfSort = 'brand';
+let pfSearch = '', pfSort = 'brand';
+let pfStyles = [];      // Mehrfachauswahl
+let pfLocation = '';    // '' | 'Paris' | 'Suisse'
+let pfHeat = false;     // nur Heat-resistant anzeigen
 
 function renderPortfolio() {
   const main = document.getElementById('main');
   main.innerHTML = `
-    <div class="view-title">Collection <span class="count-pill">${watches.length} montres</span></div>
+    <div class="view-title">Collection <span class="count-pill" id="pfCount">${watches.length} montres</span></div>
     <div class="view-sub">Ton portfolio — chaque montre avec photo, historique et attributs.</div>
     <div class="toolbar">
       <div class="search-box">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         <input type="text" id="pfSearch" placeholder="Marque, modèle, référence…" value="${esc(pfSearch)}">
       </div>
-      <select class="filter" id="pfStyle">
-        <option value="">Tous les styles</option>
-        ${STYLES.map(s => `<option value="${s}" ${pfStyle===s?'selected':''}>${s}</option>`).join('')}
-      </select>
       <select class="filter" id="pfSort">
         <option value="brand" ${pfSort==='brand'?'selected':''}>Trier : marque</option>
         <option value="recent" ${pfSort==='recent'?'selected':''}>Achat le plus récent</option>
@@ -679,13 +699,58 @@ function renderPortfolio() {
       </select>
       <button class="btn btn-primary" id="addWatch">+ Ajouter une montre</button>
     </div>
+
+    <div class="filter-bar">
+      <div class="filter-group">
+        <span class="fg-label">Location</span>
+        ${LOCATIONS.map(l => `<button class="fchip ${pfLocation===l?'on':''}" data-loc="${l}">${l}</button>`).join('')}
+      </div>
+      <div class="filter-group">
+        <span class="fg-label">Style</span>
+        ${STYLES.map(s => `<button class="fchip ${pfStyles.includes(s)?'on':''}" data-style="${s}">${s}</button>`).join('')}
+      </div>
+      <div class="filter-group">
+        <span class="fg-label">Attribut</span>
+        <button class="fchip heat ${pfHeat?'on':''}" id="pfHeatChip">Heat-resistant</button>
+      </div>
+      <button class="filter-reset ${(pfStyles.length||pfLocation||pfHeat||pfSearch)?'':'hidden'}" id="pfReset">✕ Réinitialiser</button>
+    </div>
+
     <div id="pfGrid"></div>
   `;
-  document.getElementById('pfSearch').addEventListener('input', e => { pfSearch = e.target.value; drawGrid(); });
-  document.getElementById('pfStyle').addEventListener('change', e => { pfStyle = e.target.value; drawGrid(); });
+  document.getElementById('pfSearch').addEventListener('input', e => { pfSearch = e.target.value; drawGrid(); refreshResetBtn(); });
   document.getElementById('pfSort').addEventListener('change', e => { pfSort = e.target.value; drawGrid(); });
   document.getElementById('addWatch').addEventListener('click', () => openEditor(null));
+
+  document.querySelectorAll('.fchip[data-loc]').forEach(btn => btn.addEventListener('click', () => {
+    const l = btn.dataset.loc;
+    pfLocation = (pfLocation === l) ? '' : l;
+    document.querySelectorAll('.fchip[data-loc]').forEach(b => b.classList.toggle('on', b.dataset.loc === pfLocation));
+    drawGrid(); refreshResetBtn();
+  }));
+  document.querySelectorAll('.fchip[data-style]').forEach(btn => btn.addEventListener('click', () => {
+    const s = btn.dataset.style;
+    if (pfStyles.includes(s)) pfStyles = pfStyles.filter(x => x !== s);
+    else pfStyles.push(s);
+    btn.classList.toggle('on');
+    drawGrid(); refreshResetBtn();
+  }));
+  document.getElementById('pfHeatChip').addEventListener('click', () => {
+    pfHeat = !pfHeat;
+    document.getElementById('pfHeatChip').classList.toggle('on', pfHeat);
+    drawGrid(); refreshResetBtn();
+  });
+  document.getElementById('pfReset').addEventListener('click', () => {
+    pfSearch = ''; pfStyles = []; pfLocation = ''; pfHeat = false;
+    renderPortfolio();
+  });
+
   drawGrid();
+}
+
+function refreshResetBtn() {
+  const btn = document.getElementById('pfReset');
+  if (btn) btn.classList.toggle('hidden', !(pfStyles.length || pfLocation || pfHeat || pfSearch));
 }
 
 function wearCount(id) { return logs.filter(l => l.watchId === id).length; }
@@ -695,9 +760,16 @@ function drawGrid() {
   let list = watches.filter(w => {
     const q = pfSearch.toLowerCase();
     const hit = !q || `${w.brand} ${w.model} ${w.ref||''} ${(w.styles||[]).join(' ')}`.toLowerCase().includes(q);
-    const styleOk = !pfStyle || (w.styles||[]).includes(pfStyle);
-    return hit && styleOk;
+    // Style : UND-Verknüpfung nicht nötig — zeige Uhr, die MINDESTENS einen gewählten Style hat
+    const styleOk = pfStyles.length === 0 || (w.styles||[]).some(s => pfStyles.includes(s));
+    const locOk = !pfLocation || w.location === pfLocation;
+    const heatOk = !pfHeat || w.heatResistant;
+    return hit && styleOk && locOk && heatOk;
   });
+  const cnt = document.getElementById('pfCount');
+  if (cnt) cnt.textContent = (list.length === watches.length)
+    ? `${watches.length} montres`
+    : `${list.length} / ${watches.length}`;
   if (pfSort === 'brand') list.sort((a,b) => (a.brand+a.model).localeCompare(b.brand+b.model));
   else if (pfSort === 'recent') list.sort((a,b) => (b.purchaseDate||'').localeCompare(a.purchaseDate||''));
   else if (pfSort === 'worn') list.sort((a,b) => wearCount(b.id) - wearCount(a.id));
